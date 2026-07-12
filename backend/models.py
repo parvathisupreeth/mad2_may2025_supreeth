@@ -8,15 +8,16 @@ db = SQLAlchemy()
 class User(db.Model):
     __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True,autoincrement=True)
-    username=db.column(db.String(120), pnullable=False)
+    username=db.Column(db.String(120), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(20), nullable=False,default='student')
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-def __repr__(self):
-    return f"<User {self.username}>"
+    def __repr__(self):
+        return f"<User {self.username}>"
+
 
 class StudentProfile(db.Model):
     __tablename__ = "student_profiles"
@@ -32,8 +33,8 @@ class StudentProfile(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     user = db.relationship("User", backref="student_profile")
 
-def __repr__(self):
-    return f"<User {self.username}>"
+    def __repr__(self):
+        return f"<User {self.username}>"
 
 
 class CompanyProfile(db.Model):
@@ -50,8 +51,8 @@ class CompanyProfile(db.Model):
     created_at = db.Column(db.DateTime,default=datetime.utcnow)
     user = db.relationship("User",backref="company_profile")
 
-def __repr__(self):
-    return f"<User {self.username}>"
+    def __repr__(self):
+        return f"<User {self.username}>"
 
 
 class PlacementDrive(db.Model):
@@ -69,8 +70,8 @@ class PlacementDrive(db.Model):
     created_at = db.Column(db.DateTime,default=datetime.utcnow)
     company = db.relationship("CompanyProfile",backref="placement_drives")
 
-def __repr__(self):
-    return f"<User {self.username}>"
+    def __repr__(self):
+        return f"<User {self.username}>"
 
 
 class Application(db.Model):
@@ -84,8 +85,8 @@ class Application(db.Model):
     student = db.relationship("StudentProfile",backref="applications")
     drive = db.relationship("PlacementDrive",backref="applications")
 
-def __repr__(self):
-    return f"<User {self.username}>"
+    def __repr__(self):
+        return f"<User {self.username}>"
 
 
 class Interview(db.Model):
@@ -96,3 +97,6 @@ class Interview(db.Model):
     meeting_link = db.Column(db.String(255))
     remarks = db.Column(db.Text)
     application = db.relationship("Application",backref="interview")
+
+    def __repr__(self):
+        return f"<User {self.username}>"
