@@ -60,16 +60,16 @@ class StudentResource(Resource):
         data=request.get_json()
         if not data:
             return{"message": "no data provided"},400
-        user= user.query.get(data["user_id"])
+        user = User.query.get(data["user_id"])
         if not user:
-            return {"message":"user not founf"},404
-        if user.role != "studnet":
-            return {"message": "user is not a studnet"},400
+            return {"message":"user not found"},404
+        if user.role != "student":
+            return {"message": "user is not a student"},400
         
         existing=StudentProfile.query.filter_by(user_id=user.id).first()
 
         if existing:
-            return {"message":"studnet profile already exist"},400
+            return {"message":"student profile already exists"},400
          
         student=StudentProfile(user_id=data["user_id"],
             name=data["name"],
@@ -80,7 +80,7 @@ class StudentResource(Resource):
         
         db.session.add(student)
         db.session.commit()
-        return {"message": f"posted stuendt info succesfuly"},201
+        return {"message": f"posted student info successfully"},201
     
     @jwt_required()
     def put (self, student_id):

@@ -150,6 +150,7 @@ class CompanyListResource(Resource):
             "id":company.id,
             "company_name":company.company_name,
             "hr_name":company.hr_name,
+            "email":company.user.email,
             "approval_status":company.approval_status,
             "is_blacklisted":company.is_blacklisted
         } for company in companies],200
@@ -173,7 +174,8 @@ class StudentListResource(Resource):
             "name":student.name,
             "branch":student.branch,
             "cgpa":student.cgpa,
-            "graduation_year":student.graduation_year
+            "graduation_year":student.graduation_year,
+            "is_active":student.user.is_active
         } for student in students],200
     
 class BlacklistCompanyResource(Resource):
@@ -228,6 +230,58 @@ class DeactivateStudentResource(Resource):
         },200
 
 
+class ActivateStudentResource(Resource):
+
+    @jwt_required()
+    def put(self, student_id):
+
+        email = get_jwt_identity()
+
+        user = User.query.filter_by(email=email).first()
+
+        if not user or user.role != "admin":
+            return {"message":"Unauthorized"},403
+
+        student = StudentProfile.query.get(student_id)
+
+        if not student:
+            return {"message":"Student not found"},404
+
+        student.user.is_active = True
+
+        db.session.commit()
+
+        return {
+            "message":"Student activated successfully"
+        },200
+
+
+class DriveListResource(Resource):
+
+    @jwt_required()
+    def get(self):
+
+        email = get_jwt_identity()
+
+        user = User.query.filter_by(email=email).first()
+
+        if not user or user.role != "admin":
+            return {"message":"Unauthorized"},403
+
+        drives = PlacementDrive.query.all()
+
+        return [{
+            "id": drive.id,
+            "company_name": drive.company.company_name,
+            "job_title": drive.job_title,
+            "eligible_branch": drive.eligible_branch,
+            "minimum_cgpa": drive.minimum_cgpa,
+            "eligible_year": drive.eligible_year,
+            "application_deadline": str(drive.application_deadline),
+            "status": drive.status
+        } for drive in drives], 200
+
+
 class SearchCompanyResource(Resource):
 
     @jwt_required()
@@ -279,10 +333,12 @@ def register_admin_routes(api):
 
     api.add_resource(CompanyListResource,"/admin/companies")
     api.add_resource(StudentListResource,"/admin/students")
+    api.add_resource(DriveListResource,"/admin/drives")
     
 
     api.add_resource(BlacklistCompanyResource,"/admin/company/<int:company_id>/blacklist")
     api.add_resource(DeactivateStudentResource,"/admin/student/<int:student_id>/deactivate")
+    api.add_resource(ActivateStudentResource,"/admin/student/<int:student_id>/activate")
 
     api.add_resource(SearchCompanyResource,"/admin/search/company")
     api.add_resource(SearchStudentResource,"/admin/search/student")

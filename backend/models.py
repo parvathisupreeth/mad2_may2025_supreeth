@@ -34,7 +34,7 @@ class StudentProfile(db.Model):
     user = db.relationship("User", backref="student_profile")
 
     def __repr__(self):
-        return f"<User {self.username}>"
+        return f"<StudentProfile {self.name}>"
 
 
 class CompanyProfile(db.Model):
@@ -52,7 +52,7 @@ class CompanyProfile(db.Model):
     user = db.relationship("User",backref="company_profile")
 
     def __repr__(self):
-        return f"<User {self.username}>"
+        return f"<CompanyProfile {self.company_name}>"
 
 
 class PlacementDrive(db.Model):
@@ -71,7 +71,7 @@ class PlacementDrive(db.Model):
     company = db.relationship("CompanyProfile",backref="placement_drives")
 
     def __repr__(self):
-        return f"<User {self.username}>"
+        return f"<PlacementDrive {self.job_title}>"
 
 
 class Application(db.Model):
@@ -86,7 +86,7 @@ class Application(db.Model):
     drive = db.relationship("PlacementDrive",backref="applications")
 
     def __repr__(self):
-        return f"<User {self.username}>"
+        return f"<Application {self.id}>"
 
 
 class Interview(db.Model):
@@ -99,4 +99,4 @@ class Interview(db.Model):
     application = db.relationship("Application",backref="interview")
 
     def __repr__(self):
-        return f"<User {self.username}>"
+        return f"<Interview {self.id}>"

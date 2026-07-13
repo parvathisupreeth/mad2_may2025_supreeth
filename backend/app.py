@@ -53,3 +53,4 @@ if __name__ == '__main__':
             print("Admin user already exists")
 
     app.run(debug=True)
+
