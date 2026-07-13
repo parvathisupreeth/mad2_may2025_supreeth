@@ -120,6 +120,7 @@ class CompanyApplicantsResource(Resource):
                 "branch": student.branch,
                 "cgpa": student.cgpa,
                 "graduation_year": student.graduation_year,
+                "resume_path": student.resume_path,
                 "status": app.status,
                 "remarks": app.remarks
             })
@@ -196,6 +197,7 @@ class CompanyAllApplicationsResource(Resource):
                     "branch": student.branch,
                     "cgpa": student.cgpa,
                     "graduation_year": student.graduation_year,
+                    "resume_path": student.resume_path,
                     "application_date": str(app.application_date)[:10],
                     "status": app.status,
                     "remarks": app.remarks or ""

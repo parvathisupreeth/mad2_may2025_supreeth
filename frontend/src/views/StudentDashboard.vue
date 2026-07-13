@@ -28,7 +28,6 @@
             </div>
             <div>
               <h3 class="mb-0">Welcome, {{ profile.name }} 👋</h3>
-              <small class="text-muted">{{ profile.email }}</small>
             </div>
           </div>
 
@@ -71,6 +70,29 @@
               </div>
             </div>
 
+            <div class="col-md-12 mt-3">
+              <div class="card border-0 shadow-sm">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                  <div>
+                    <h5 class="mb-1">My Resume</h5>
+                    <p class="text-muted small mb-0">
+                      {{ profile.resume_path ? 'Resume uploaded.' : 'No resume uploaded yet.' }}
+                    </p>
+                  </div>
+                  <div class="d-flex align-items-center gap-3">
+                    <a v-if="profile.resume_path" :href="'http://127.0.0.1:5000' + profile.resume_path" target="_blank" class="btn btn-outline-primary">
+                      👁️ View Resume
+                    </a>
+                    <input type="file" ref="resumeInput" class="d-none" accept=".pdf,.doc,.docx" @change="uploadResume" />
+                    <button class="btn btn-primary" @click="$refs.resumeInput.click()" :disabled="uploading">
+                      <span v-if="uploading" class="spinner-border spinner-border-sm me-1"></span>
+                      {{ profile.resume_path ? 'Update Resume' : 'Upload Resume' }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
 
           <!-- Quick actions -->
@@ -106,6 +128,7 @@ import Sidebar from "../components/Sidebar.vue"
 
 const profile = ref(null)
 const loading = ref(true)
+const uploading = ref(false)
 const error = ref("")
 
 const headers = { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
@@ -120,4 +143,30 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+async function uploadResume(event) {
+  const file = event.target.files[0]
+  if (!file) return
+
+  uploading.value = true
+  error.value = ""
+
+  const formData = new FormData()
+  formData.append("resume", file)
+
+  try {
+    const res = await api.post("/student/resume", formData, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        "Content-Type": "multipart/form-data"
+      }
+    })
+    profile.value.resume_path = res.data.resume_path
+  } catch (err) {
+    error.value = err.response?.data?.message || "Failed to upload resume."
+  } finally {
+    uploading.value = false
+    event.target.value = "" // reset input
+  }
+}
 </script>

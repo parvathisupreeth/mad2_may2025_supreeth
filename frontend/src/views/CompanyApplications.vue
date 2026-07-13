@@ -67,6 +67,7 @@
                   <th>Year</th>
                   <th>Drive / Job Title</th>
                   <th>Applied On</th>
+                  <th>Resume</th>
                   <th>Status</th>
                   <th>Update Status</th>
                 </tr>
@@ -82,6 +83,12 @@
                     <span class="badge bg-light text-dark border">{{ app.job_title }}</span>
                   </td>
                   <td class="text-muted small">{{ app.application_date }}</td>
+                  <td>
+                    <a v-if="app.resume_path" :href="'http://127.0.0.1:5000' + app.resume_path" target="_blank" class="text-primary text-decoration-none small fw-semibold">
+                      👁️ View
+                    </a>
+                    <span v-else class="text-muted small">—</span>
+                  </td>
                   <td>
                     <span
                       class="badge"

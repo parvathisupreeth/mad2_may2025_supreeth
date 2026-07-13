@@ -29,7 +29,29 @@ class CompanyProfileResource(Resource):
             "approval_status": company.approval_status,
             "is_blacklisted": company.is_blacklisted
         }, 200
-    
+
+    @jwt_required()
+    def put(self):
+        email = get_jwt_identity()
+        user = User.query.filter_by(email=email).first()
+
+        if not user or user.role != "company":
+            return {"message": "Unauthorized"}, 403
+
+        company = CompanyProfile.query.filter_by(user_id=user.id).first()
+        if not company:
+            return {"message": "Company profile not found"}, 404
+
+        data = request.get_json()
+        if not data:
+            return {"message": "No data provided"}, 400
+        company.company_name = data.get("company_name", company.company_name)
+        company.hr_name = data.get("hr_name", company.hr_name)
+        company.hr_email = data.get("hr_email", company.hr_email)
+        company.website = data.get("website", company.website)
+        db.session.commit()
+        return {"message": "Company profile updated successfully"}, 200
+
 
 class CreatePlacementDriveResource(Resource):
 
@@ -42,7 +64,7 @@ class CreatePlacementDriveResource(Resource):
             return {"message": "User not found"}, 404
         if user.role != "company":
             return {"message": "Unauthorized"}, 403
-        
+
         company = CompanyProfile.query.filter_by(user_id=user.id).first()
 
         if not company:
@@ -55,7 +77,7 @@ class CreatePlacementDriveResource(Resource):
             return {
                 "message": "Company has been blacklisted."
             }, 403
-        
+
         data = request.get_json()
 
         drive = PlacementDrive(
@@ -77,7 +99,7 @@ class CreatePlacementDriveResource(Resource):
         return {
             "message": "Placement Drive created successfully and sent for Admin Approval."
         }, 201
-    
+
 
 class CompanyDrivesResource(Resource):
 
@@ -107,7 +129,8 @@ class CompanyDrivesResource(Resource):
             "application_deadline": str(drive.application_deadline),
             "status": drive.status
         } for drive in drives], 200
-    
+
+
 class PlacementDriveDetailResource(Resource):
 
     @jwt_required()
@@ -197,7 +220,7 @@ class CompanyDashboardResource(Resource):
             "interviews": total_interviews
         }, 200
 
-    
+
 def register_company_routes(api):
 
     api.add_resource(CompanyDashboardResource, "/company/dashboard")

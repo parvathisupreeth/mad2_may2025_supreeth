@@ -1,4 +1,5 @@
-from flask import Flask,request
+from flask import Flask, request, send_from_directory
+import os
 from models import db,User,StudentProfile,CompanyProfile,PlacementDrive,Application,Interview
 # from controllers import *
 from flask_cors import CORS
@@ -16,6 +17,14 @@ app = Flask(__name__)
 CORS(app)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///placement.db'
+app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(__file__), 'uploads')
+if os.path.isfile(app.config['UPLOAD_FOLDER']):
+    os.remove(app.config['UPLOAD_FOLDER'])
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 
 api = Api(app)

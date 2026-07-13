@@ -1,8 +1,10 @@
 from flask_restful import Resource
 from flask import request
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import db, User, StudentProfile
-from flask_restful import Api
+from werkzeug.utils import secure_filename
+import os
+from flask import current_app
 
 # class StudentResource(Resource):
 
@@ -115,7 +117,6 @@ class StudentResource(Resource):
 class StudentProfileResource(Resource):
     @jwt_required()
     def get(self):
-        from flask_jwt_extended import get_jwt_identity
         email = get_jwt_identity()
         user = User.query.filter_by(email=email).first()
         if not user or user.role != "student":
@@ -130,9 +131,58 @@ class StudentProfileResource(Resource):
             "cgpa": student.cgpa,
             "graduation_year": student.graduation_year,
             "phone": student.phone or "",
-            "email": user.email
+            "resume_path": student.resume_path
         }, 200
+
+    @jwt_required()
+    def put(self):
+        email = get_jwt_identity()
+        user = User.query.filter_by(email=email).first()
+        if not user or user.role != "student":
+            return {"message": "Unauthorized"}, 403
+        student = StudentProfile.query.filter_by(user_id=user.id).first()
+        if not student:
+            return {"message": "Profile not found"}, 404
+        data = request.get_json()
+        if not data:
+            return {"message": "No data provided"}, 400
+        student.name = data.get("name", student.name)
+        student.branch = data.get("branch", student.branch)
+        student.cgpa = data.get("cgpa", student.cgpa)
+        student.graduation_year = data.get("graduation_year", student.graduation_year)
+        student.phone = data.get("phone", student.phone)
+        db.session.commit()
+        return {"message": "Profile updated successfully"}, 200
+
+class StudentResumeResource(Resource):
+    @jwt_required()
+    def post(self):
+        email = get_jwt_identity()
+        user = User.query.filter_by(email=email).first()
+        if not user or user.role != "student":
+            return {"message": "Unauthorized"}, 403
+        student = StudentProfile.query.filter_by(user_id=user.id).first()
+        if not student:
+            return {"message": "Profile not found"}, 404
+        
+        if 'resume' not in request.files:
+            return {"message": "No file part"}, 400
+            
+        file = request.files['resume']
+        if file.filename == '':
+            return {"message": "No selected file"}, 400
+            
+        if file:
+            filename = secure_filename(f"student_{student.id}_{file.filename}")
+            file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+            file.save(file_path)
+            
+            # Save the relative path/URL
+            student.resume_path = f"/uploads/{filename}"
+            db.session.commit()
+            return {"message": "Resume uploaded successfully", "resume_path": student.resume_path}, 200
 
 def register_student_routes(api):
     api.add_resource(StudentResource,"/students","/students/<int:student_id>")
     api.add_resource(StudentProfileResource, "/student/profile")
+    api.add_resource(StudentResumeResource, "/student/resume")
