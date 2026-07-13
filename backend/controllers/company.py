@@ -1,6 +1,7 @@
-from flask_restful import Resource,request
+from flask_restful import Resource, request
+from datetime import datetime
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import (db,User,CompanyProfile,PlacementDrive)
+from models import (db, User, CompanyProfile, PlacementDrive, Application, Interview)
 
 
 class CompanyProfileResource(Resource):
@@ -64,7 +65,9 @@ class CreatePlacementDriveResource(Resource):
             eligible_branch=data["eligible_branch"],
             minimum_cgpa=data["minimum_cgpa"],
             eligible_year=data["eligible_year"],
-            application_deadline=data["application_deadline"],
+            application_deadline=datetime.strptime(
+                data["application_deadline"],
+                "%Y-%m-%d").date(),
             status="pending"
         )
 
@@ -97,6 +100,7 @@ class CompanyDrivesResource(Resource):
         return [{
             "id": drive.id,
             "job_title": drive.job_title,
+            "job_description": drive.job_description,
             "eligible_branch": drive.eligible_branch,
             "minimum_cgpa": drive.minimum_cgpa,
             "eligible_year": drive.eligible_year,
@@ -104,7 +108,7 @@ class CompanyDrivesResource(Resource):
             "status": drive.status
         } for drive in drives], 200
     
-class UpdatePlacementDriveResource(Resource):
+class PlacementDriveDetailResource(Resource):
 
     @jwt_required()
     def put(self, drive_id):
@@ -130,15 +134,14 @@ class UpdatePlacementDriveResource(Resource):
         drive.eligible_branch = data.get("eligible_branch", drive.eligible_branch)
         drive.minimum_cgpa = data.get("minimum_cgpa", drive.minimum_cgpa)
         drive.eligible_year = data.get("eligible_year", drive.eligible_year)
-        drive.application_deadline = data.get(
-            "application_deadline",
-            drive.application_deadline
-        )
+        if "application_deadline" in data:
+            drive.application_deadline = datetime.strptime(
+                data["application_deadline"],
+                "%Y-%m-%d"
+            ).date()
 
         db.session.commit()
         return {"message": "Placement Drive updated successfully"}, 200
-    
-class DeletePlacementDriveResource(Resource):
 
     @jwt_required()
     def delete(self, drive_id):
@@ -161,12 +164,45 @@ class DeletePlacementDriveResource(Resource):
         db.session.commit()
 
         return {"message": "Placement Drive deleted successfully"}, 200
+
+
+class CompanyDashboardResource(Resource):
+
+    @jwt_required()
+    def get(self):
+        email = get_jwt_identity()
+        user = User.query.filter_by(email=email).first()
+
+        if not user or user.role != "company":
+            return {"message": "Unauthorized"}, 403
+
+        company = CompanyProfile.query.filter_by(user_id=user.id).first()
+        if not company:
+            return {"message": "Company not found"}, 404
+
+        drives = PlacementDrive.query.filter_by(company_id=company.id).all()
+        drive_ids = [d.id for d in drives]
+
+        total_applications = Application.query.filter(
+            Application.drive_id.in_(drive_ids)
+        ).count() if drive_ids else 0
+
+        total_interviews = Interview.query.join(Application).filter(
+            Application.drive_id.in_(drive_ids)
+        ).count() if drive_ids else 0
+
+        return {
+            "drives": len(drives),
+            "applications": total_applications,
+            "interviews": total_interviews
+        }, 200
+
     
 def register_company_routes(api):
 
-    api.add_resource(CompanyProfileResource,"/company/profile")
-    
-    api.add_resource(CreatePlacementDriveResource,"/company/drive")
-    api.add_resource(CompanyDrivesResource,"/company/drives")
-    api.add_resource(UpdatePlacementDriveResource,"/company/drive/<int:drive_id>")
-    api.add_resource(DeletePlacementDriveResource,"/company/drive/<int:drive_id>")
+    api.add_resource(CompanyDashboardResource, "/company/dashboard")
+    api.add_resource(CompanyProfileResource, "/company/profile")
+
+    api.add_resource(CreatePlacementDriveResource, "/company/drive")
+    api.add_resource(CompanyDrivesResource, "/company/drives")
+    api.add_resource(PlacementDriveDetailResource, "/company/drive/<int:drive_id>")

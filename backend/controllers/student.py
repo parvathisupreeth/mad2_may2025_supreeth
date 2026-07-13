@@ -112,5 +112,27 @@ class StudentResource(Resource):
         db.session.commit()
         return {"message": f"deleted student info successfully"},200
 
+class StudentProfileResource(Resource):
+    @jwt_required()
+    def get(self):
+        from flask_jwt_extended import get_jwt_identity
+        email = get_jwt_identity()
+        user = User.query.filter_by(email=email).first()
+        if not user or user.role != "student":
+            return {"message": "Unauthorized"}, 403
+        student = StudentProfile.query.filter_by(user_id=user.id).first()
+        if not student:
+            return {"message": "Profile not found"}, 404
+        return {
+            "id": student.id,
+            "name": student.name,
+            "branch": student.branch,
+            "cgpa": student.cgpa,
+            "graduation_year": student.graduation_year,
+            "phone": student.phone or "",
+            "email": user.email
+        }, 200
+
 def register_student_routes(api):
     api.add_resource(StudentResource,"/students","/students/<int:student_id>")
+    api.add_resource(StudentProfileResource, "/student/profile")

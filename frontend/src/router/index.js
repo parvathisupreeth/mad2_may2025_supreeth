@@ -12,6 +12,13 @@ import AdminCompanies from "../views/AdminCompanies.vue";
 import AdminStudents from "../views/AdminStudents.vue"
 import AdminDrives from "../views/AdminDrives.vue"
 
+import CompanyDrives from "../views/CompanyDrives.vue"
+import CompanyCreateDrive from "../views/CompanyCreateDrive.vue"
+import CompanyApplications from "../views/CompanyApplications.vue"
+
+import StudentBrowseDrives from "../views/StudentBrowseDrives.vue"
+import StudentApplications from "../views/StudentApplications.vue"
+
 const routes = [
     {
         path: "/",
@@ -61,6 +68,31 @@ const routes = [
     {
         path: "/admin/drives",
         component: AdminDrives
+    },
+
+    {
+        path: "/company/drives",
+        component: CompanyDrives
+    },
+
+    {
+        path: "/company/create-drive",
+        component: CompanyCreateDrive
+    },
+
+    {
+        path: "/company/applications",
+        component: CompanyApplications
+    },
+
+    {
+        path: "/student/drives",
+        component: StudentBrowseDrives
+    },
+
+    {
+        path: "/student/applications",
+        component: StudentApplications
     }
 ];
 

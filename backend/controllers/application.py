@@ -33,8 +33,9 @@ class ApplyDriveResource(Resource):
         if drive.application_deadline < date.today():
             return {"message":"Application deadline has passed."},400
 
-        if student.branch != drive.eligible_branch:
-            return {"message":"Branch not eligible."},400
+        eligible_branches = [b.strip() for b in drive.eligible_branch.split(",")]
+        if student.branch not in eligible_branches:
+            return {"message": "Branch not eligible."}, 400
 
         if student.cgpa < drive.minimum_cgpa:
             return {"message":"CGPA not eligible."},400
@@ -77,6 +78,7 @@ class StudentApplicationHistoryResource(Resource):
 
             result.append({
                 "application_id": app.id,
+                "drive_id": app.drive_id,
                 "company_name": company.company_name,
                 "job_title": drive.job_title,
                 "application_date": str(app.application_date),
@@ -161,8 +163,50 @@ class UpdateApplicationStatusResource(Resource):
         return {"message": "Application updated successfully"}, 200
 
 
+class CompanyAllApplicationsResource(Resource):
+
+    @jwt_required()
+    def get(self):
+        email = get_jwt_identity()
+        user = User.query.filter_by(email=email).first()
+
+        if not user or user.role != "company":
+            return {"message": "Unauthorized"}, 403
+
+        company = CompanyProfile.query.filter_by(user_id=user.id).first()
+        if not company:
+            return {"message": "Company not found"}, 404
+
+        search = request.args.get("search", "").strip().lower()
+
+        drives = PlacementDrive.query.filter_by(company_id=company.id).all()
+        result = []
+
+        for drive in drives:
+            applications = Application.query.filter_by(drive_id=drive.id).all()
+            for app in applications:
+                student = StudentProfile.query.get(app.student_id)
+                if search and search not in student.name.lower():
+                    continue
+                result.append({
+                    "application_id": app.id,
+                    "drive_id": drive.id,
+                    "job_title": drive.job_title,
+                    "student_name": student.name,
+                    "branch": student.branch,
+                    "cgpa": student.cgpa,
+                    "graduation_year": student.graduation_year,
+                    "application_date": str(app.application_date)[:10],
+                    "status": app.status,
+                    "remarks": app.remarks or ""
+                })
+
+        return result, 200
+
+
 def register_application_routes(api):
     api.add_resource(ApplyDriveResource,"/student/apply/<int:drive_id>")
     api.add_resource(StudentApplicationHistoryResource,"/student/applications")
     api.add_resource(CompanyApplicantsResource,"/company/applicants/<int:drive_id>")
     api.add_resource(UpdateApplicationStatusResource,"/company/application/<int:application_id>/status")
+    api.add_resource(CompanyAllApplicationsResource,"/company/applications")
