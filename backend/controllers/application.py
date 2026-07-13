@@ -152,7 +152,7 @@ class UpdateApplicationStatusResource(Resource):
         data = request.get_json()
         status = data.get("status")
         remarks = data.get("remarks")
-        allowed_status = ["Applied","Shortlisted","Selected","Rejected"]
+        allowed_status = ["applied","Shortlisted","Selected","Rejected"]
 
         if status not in allowed_status:
             return {"message": "Invalid status"}, 400

@@ -95,18 +95,18 @@
 
           </div>
 
-          <!-- Quick actions -->
-          <div class="d-flex gap-2 flex-wrap">
-            <button
-              class="btn btn-primary"
-              @click="$router.push('/student/drives')">
-              🔍 Browse Drives
-            </button>
-            <button
-              class="btn btn-outline-secondary"
-              @click="$router.push('/student/applications')">
-              📋 My Applications
-            </button>
+          <!-- Chart -->
+          <div class="row mt-4" v-if="hasApplications">
+            <div class="col-md-12 mb-4">
+              <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                  <h5 class="card-title mb-3">Application Status Distribution</h5>
+                  <div style="position: relative; height: 250px;">
+                    <canvas ref="barChartCanvas"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
         </template>
@@ -123,6 +123,7 @@
 <script setup>
 import { ref, onMounted } from "vue"
 import api from "../services/api"
+import Chart from "chart.js/auto"
 import Navbar from "../components/Navbar.vue"
 import Sidebar from "../components/Sidebar.vue"
 
@@ -130,6 +131,10 @@ const profile = ref(null)
 const loading = ref(true)
 const uploading = ref(false)
 const error = ref("")
+const hasApplications = ref(false)
+
+const barChartCanvas = ref(null)
+let chartInstance = null
 
 const headers = { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
 
@@ -137,6 +142,61 @@ onMounted(async () => {
   try {
     const res = await api.get("/student/profile", headers)
     profile.value = res.data
+
+    // Fetch applications to create the status chart
+    const appsRes = await api.get("/student/applications", headers)
+    const apps = appsRes.data
+
+    if (apps && apps.length > 0) {
+      hasApplications.value = true
+
+      // Status aggregation
+      const counts = {
+        applied: 0,
+        Shortlisted: 0,
+        Selected: 0,
+        Rejected: 0
+      }
+
+      apps.forEach(app => {
+        // Handle case mismatch just in case
+        const status = app.status
+        if (counts[status] !== undefined) {
+          counts[status]++
+        } else if (status.toLowerCase() === 'applied') {
+          counts.applied++
+        }
+      })
+
+      // Wait for next tick so barChartCanvas is rendered
+      setTimeout(() => {
+        if (barChartCanvas.value) {
+          chartInstance = new Chart(barChartCanvas.value, {
+            type: 'bar',
+            data: {
+              labels: ['Applied', 'Shortlisted', 'Selected', 'Rejected'],
+              datasets: [{
+                label: 'Applications',
+                data: [counts.applied, counts.Shortlisted, counts.Selected, counts.Rejected],
+                backgroundColor: ['#6c757d', '#ffc107', '#198754', '#dc3545']
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  ticks: {
+                    stepSize: 1
+                  }
+                }
+              }
+            }
+          })
+        }
+      }, 50)
+    }
   } catch (err) {
     error.value = err.response?.data?.message || "Failed to load profile."
   } finally {

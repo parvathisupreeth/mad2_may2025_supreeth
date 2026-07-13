@@ -214,10 +214,19 @@ class CompanyDashboardResource(Resource):
             Application.drive_id.in_(drive_ids)
         ).count() if drive_ids else 0
 
+        drive_stats = []
+        for drive in drives:
+            selected_count = Application.query.filter_by(drive_id=drive.id, status='Selected').count()
+            drive_stats.append({
+                "job_title": drive.job_title,
+                "selected_count": selected_count
+            })
+
         return {
             "drives": len(drives),
             "applications": total_applications,
-            "interviews": total_interviews
+            "interviews": total_interviews,
+            "drive_stats": drive_stats
         }, 200
 
 

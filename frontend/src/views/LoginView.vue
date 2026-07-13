@@ -2,11 +2,7 @@
 
 <div class="container vh-100 d-flex justify-content-center align-items-center">
 
-<div class="row justify-content-center">
-
-<div class="col-md-4">
-
-<div class="card shadow p-4" style="width:450px;">
+<div class="card shadow p-4" style="width: 450px; max-width: 100%;">
 
 <div class="card-header text-center">
 
@@ -75,10 +71,6 @@ class="btn btn-warning w-100"
 Company Registration
 
 </button>
-
-</div>
-
-</div>
 
 </div>
 

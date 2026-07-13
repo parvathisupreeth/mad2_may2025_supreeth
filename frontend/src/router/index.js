@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from "vue-router";
 import LoginView from "../views/LoginView.vue";
 import StudentRegister from "../views/StudentRegister.vue";
 import CompanyRegister from "../views/CompanyRegister.vue";
+import LandingView from "../views/LandingView.vue";
 
 import AdminDashboard from "../views/AdminDashboard.vue";
 import StudentDashboard from "../views/StudentDashboard.vue";
@@ -22,7 +23,7 @@ import StudentApplications from "../views/StudentApplications.vue"
 const routes = [
     {
         path: "/",
-        redirect: "/login"
+        component: LandingView
     },
 
     {

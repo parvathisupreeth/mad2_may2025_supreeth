@@ -16,11 +16,62 @@ class AdminDashboardResource(Resource):
         if user.role != "admin":
             return {"message": "Unauthorized"}, 403
 
+        # Calculations for pie chart
+        total_students = StudentProfile.query.count()
+        
+        all_apps = Application.query.all()
+        applied_student_ids = {a.student_id for a in all_apps}
+        not_applied = total_students - len(applied_student_ids)
+        
+        placed_apps = Application.query.filter(Application.status.ilike('Selected')).all()
+        placed_student_ids = {a.student_id for a in placed_apps}
+        placed = len(placed_student_ids)
+        
+        rejected_apps = Application.query.filter(Application.status.ilike('Rejected')).all()
+        rejected_student_ids = {a.student_id for a in rejected_apps}
+        rejected = len(rejected_student_ids - placed_student_ids)
+        
+        other = len(applied_student_ids - placed_student_ids - rejected_student_ids)
+
+        from datetime import datetime
+        current_month = datetime.utcnow().month
+        current_year = datetime.utcnow().year
+        drives_this_month = PlacementDrive.query.filter(
+            db.extract('month', PlacementDrive.created_at) == current_month,
+            db.extract('year', PlacementDrive.created_at) == current_year
+        ).count()
+
+        # Count drives per month for the current year
+        from sqlalchemy import func
+        drives_by_month = db.session.query(
+            db.extract('month', PlacementDrive.created_at).label('month'),
+            func.count(PlacementDrive.id).label('count')
+        ).filter(
+            db.extract('year', PlacementDrive.created_at) == current_year
+        ).group_by(
+            db.extract('month', PlacementDrive.created_at)
+        ).all()
+
+        monthly_drives_data = [0] * 12
+        for row in drives_by_month:
+            m = row[0]
+            c = row[1]
+            if m and 1 <= int(m) <= 12:
+                monthly_drives_data[int(m) - 1] = c
+
         return {
-            "total_students": StudentProfile.query.count(),
+            "total_students": total_students,
             "total_companies": CompanyProfile.query.count(),
             "total_drives": PlacementDrive.query.count(),
-            "total_applications": Application.query.count()
+            "total_applications": len(all_apps),
+            "pie_chart": {
+                "placed": placed,
+                "rejected": rejected,
+                "not_applied": not_applied,
+                "other": other
+            },
+            "drives_this_month": drives_this_month,
+            "monthly_drives": monthly_drives_data
         }, 200
     
 class ApproveCompanyResource(Resource):
