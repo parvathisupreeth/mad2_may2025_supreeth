@@ -1,6 +1,25 @@
-venv
-.venv
-
+# Python
+venv/
 __pycache__/
+*.pyc
 
-instance
+# Database
+instance/
+*.db
+
+# Environment
+.env
+
+# Vue
+frontend/node_modules/
+frontend/dist/
+
+# VS Code
+.vscode/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
