@@ -5,6 +5,7 @@ from models import db, User, StudentProfile
 from werkzeug.utils import secure_filename
 import os
 from flask import current_app
+from cache_config import cache
 
 # class StudentResource(Resource):
 
@@ -34,6 +35,7 @@ from flask import current_app
 
 
 class StudentResource(Resource):
+    @cache.cached(timeout=60)
     @jwt_required()
     def get (self, student_id=None):
         if student_id:

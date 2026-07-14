@@ -8,6 +8,12 @@ class AllDrivesResource(Resource):
 
     @jwt_required()
     def get(self):
+        from extensions import cache
+        cache_key = "student_eligible_drives"
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return cached_data, 200
+
         drives = PlacementDrive.query.filter_by(status="approved").all()
         result = []
         for drive in drives:
@@ -23,6 +29,7 @@ class AllDrivesResource(Resource):
                 "application_deadline": str(drive.application_deadline)
             })
             
+        cache.set(cache_key, result, timeout=60)
         return result,200
     
 

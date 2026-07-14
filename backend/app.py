@@ -13,8 +13,29 @@ from controllers.admin import register_admin_routes
 from controllers.application import register_application_routes
 from controllers.drive import register_drive_routes
 
+from extensions import cache, celery
+
 app = Flask(__name__)
 CORS(app)
+
+# Configure Cache
+app.config['CACHE_TYPE'] = 'RedisCache'
+app.config['CACHE_REDIS_URL'] = 'redis://localhost:6379/0'
+cache.init_app(app)
+
+# Configure Celery
+celery.conf.update(
+    broker_url="redis://localhost:6379/0",
+    result_backend="redis://localhost:6379/0",
+    imports=("tasks",),
+)
+
+class ContextTask(celery.Task):
+    def __call__(self, *args, **kwargs):
+        with app.app_context():
+            return self.run(*args, **kwargs)
+
+celery.Task = ContextTask
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///placement.db'
 app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(__file__), 'uploads')

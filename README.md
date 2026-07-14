@@ -45,3 +45,18 @@ cd frontend
 npm install
 npm run dev
 ```
+
+# Celery Worker in backend
+
+```bash
+celery -A celery_app worker --loglevel=INFO \\ --pool=solo only for windows
+```
+
+# Celery Beat
+
+```bash
+celery -A celery_app beat --loglevel=INFO
+```
+
+#run --- redis-server.exe
+#run ---- MailHog_windows_amd64.exe

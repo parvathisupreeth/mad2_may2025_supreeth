@@ -14,7 +14,31 @@
 
         <div class="d-flex justify-content-between align-items-center mb-3">
           <h3 class="mb-0">My Applications</h3>
-          <span class="badge bg-secondary fs-6">{{ filtered.length }} application(s)</span>
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-secondary fs-6">{{ filtered.length }} application(s)</span>
+            <button
+              id="export-csv-btn"
+              class="btn btn-outline-success btn-sm"
+              :disabled="exporting"
+              @click="exportCSV"
+            >
+              <span v-if="exporting" class="spinner-border spinner-border-sm me-1" role="status"></span>
+              <span v-else>📥</span>
+              {{ exporting ? 'Sending...' : 'Export CSV' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Export alert toast -->
+        <div
+          v-if="exportMsg"
+          class="alert d-flex align-items-center gap-2 mb-3"
+          :class="exportSuccess ? 'alert-success' : 'alert-danger'"
+          role="alert"
+        >
+          <span>{{ exportSuccess ? '✅' : '❌' }}</span>
+          <span>{{ exportMsg }}</span>
+          <button type="button" class="btn-close ms-auto" @click="exportMsg = ''"></button>
         </div>
 
         <!-- Search -->
@@ -110,6 +134,11 @@ const searchQuery = ref("")
 const loading = ref(true)
 const error = ref("")
 
+// Export state
+const exporting = ref(false)
+const exportMsg = ref("")
+const exportSuccess = ref(false)
+
 const headers = { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
 
 const filtered = computed(() => {
@@ -131,4 +160,19 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+async function exportCSV() {
+  exporting.value = true
+  exportMsg.value = ""
+  try {
+    const res = await api.post("/student/export", {}, headers)
+    exportMsg.value = res.data?.message || "Export triggered! Check your email shortly."
+    exportSuccess.value = true
+  } catch (err) {
+    exportMsg.value = err.response?.data?.message || "Failed to trigger export. Try again."
+    exportSuccess.value = false
+  } finally {
+    exporting.value = false
+  }
+}
 </script>

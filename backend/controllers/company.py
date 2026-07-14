@@ -2,6 +2,7 @@ from flask_restful import Resource, request
 from datetime import datetime
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import (db, User, CompanyProfile, PlacementDrive, Application, Interview)
+from cache_config import cache
 
 
 class CompanyProfileResource(Resource):
@@ -96,6 +97,10 @@ class CreatePlacementDriveResource(Resource):
         db.session.add(drive)
         db.session.commit()
 
+        from extensions import cache
+        cache.delete("admin_dashboard_stats")
+        cache.delete(f"company_dashboard_stats_{company.id}")
+
         return {
             "message": "Placement Drive created successfully and sent for Admin Approval."
         }, 201
@@ -164,6 +169,13 @@ class PlacementDriveDetailResource(Resource):
             ).date()
 
         db.session.commit()
+
+
+        from extensions import cache
+        cache.delete("admin_dashboard_stats")
+        cache.delete("student_eligible_drives")
+        cache.delete(f"company_dashboard_stats_{company.id}")
+
         return {"message": "Placement Drive updated successfully"}, 200
 
     @jwt_required()
@@ -186,6 +198,12 @@ class PlacementDriveDetailResource(Resource):
         db.session.delete(drive)
         db.session.commit()
 
+
+        from extensions import cache
+        cache.delete("admin_dashboard_stats")
+        cache.delete("student_eligible_drives")
+        cache.delete(f"company_dashboard_stats_{company.id}")
+
         return {"message": "Placement Drive deleted successfully"}, 200
 
 
@@ -202,6 +220,12 @@ class CompanyDashboardResource(Resource):
         company = CompanyProfile.query.filter_by(user_id=user.id).first()
         if not company:
             return {"message": "Company not found"}, 404
+
+        from extensions import cache
+        cache_key = f"company_dashboard_stats_{company.id}"
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return cached_data, 200
 
         drives = PlacementDrive.query.filter_by(company_id=company.id).all()
         drive_ids = [d.id for d in drives]
@@ -222,12 +246,14 @@ class CompanyDashboardResource(Resource):
                 "selected_count": selected_count
             })
 
-        return {
+        result = {
             "drives": len(drives),
             "applications": total_applications,
             "interviews": total_interviews,
             "drive_stats": drive_stats
-        }, 200
+        }
+        cache.set(cache_key, result, timeout=60)
+        return result, 200
 
 
 def register_company_routes(api):

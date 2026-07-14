@@ -64,6 +64,9 @@ class RegisterStudentResource(Resource):
         db.session.add(student)
         db.session.commit()
 
+        from tasks import send_welcome_email_task
+        send_welcome_email_task.delay(user.email, user.username)
+
         return {
             "message": "Student Registered Successfully"
         }, 201
@@ -98,6 +101,9 @@ class RegisterCompanyResource(Resource):
 
         db.session.add(company)
         db.session.commit()
+
+        from tasks import send_welcome_email_task
+        send_welcome_email_task.delay(user.email, user.username)
 
         return {
             "message": "Company Registered Successfully. Waiting for Admin Approval."

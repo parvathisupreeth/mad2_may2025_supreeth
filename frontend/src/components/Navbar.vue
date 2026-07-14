@@ -132,7 +132,7 @@ import api from "../services/api"
 const router = useRouter()
 const route  = useRoute()
 
-// Re-read role from localStorage whenever the route changes (handles post-login navigation)
+
 const role = ref(localStorage.getItem("role"))
 watch(route, () => {
   role.value = localStorage.getItem("role")
@@ -179,7 +179,6 @@ async function saveProfile() {
   try {
     const endpoint = role.value === "student" ? "/student/profile" : "/company/profile"
 
-    // Only send editable fields — never send id, email, approval_status, is_blacklisted
     let payload
     if (role.value === "student") {
       payload = {

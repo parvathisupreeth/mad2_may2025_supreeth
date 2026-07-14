@@ -2,7 +2,6 @@ from flask_restful import Resource
 from flask import request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import date
-
 from models import (db,User,StudentProfile,CompanyProfile,PlacementDrive,Application)
 
 
@@ -48,6 +47,11 @@ class ApplyDriveResource(Resource):
         application = Application(student_id=student.id,drive_id=drive.id)
         db.session.add(application)
         db.session.commit()
+
+   
+        from extensions import cache
+        cache.delete("admin_dashboard_stats")
+        cache.delete(f"company_dashboard_stats_{drive.company_id}")
 
         return {"message":"Application submitted successfully."},201
     
@@ -161,6 +165,17 @@ class UpdateApplicationStatusResource(Resource):
         application.remarks = remarks
         db.session.commit()
 
+
+        from extensions import cache
+        cache.delete("admin_dashboard_stats")
+        cache.delete(f"company_dashboard_stats_{drive.company_id}")
+
+        from tasks import notify_status_change_task
+        student = StudentProfile.query.get(application.student_id)
+        student_user = User.query.get(student.user_id)
+        if student_user:
+            notify_status_change_task.delay(student_user.email, drive.job_title, status, remarks)
+
         return {"message": "Application updated successfully"}, 200
 
 
@@ -206,9 +221,37 @@ class CompanyAllApplicationsResource(Resource):
         return result, 200
 
 
+class ExportApplicationsResource(Resource):
+    """
+    User-Triggered Async Job — POST /student/export
+    Triggers a Celery task to generate the student's application
+    history as a CSV and email it to them.
+    """
+
+    @jwt_required()
+    def post(self):
+        email = get_jwt_identity()
+        user = User.query.filter_by(email=email).first()
+
+        if not user or user.role != "student":
+            return {"message": "Unauthorized"}, 403
+
+        student = StudentProfile.query.filter_by(user_id=user.id).first()
+        if not student:
+            return {"message": "Student profile not found"}, 404
+
+        from tasks import export_student_applications_csv
+        export_student_applications_csv.delay(student.id, user.email, student.name)
+
+        return {
+            "message": f"Export started! Your CSV will be emailed to {user.email} shortly."
+        }, 202
+
+
 def register_application_routes(api):
     api.add_resource(ApplyDriveResource,"/student/apply/<int:drive_id>")
     api.add_resource(StudentApplicationHistoryResource,"/student/applications")
     api.add_resource(CompanyApplicantsResource,"/company/applicants/<int:drive_id>")
     api.add_resource(UpdateApplicationStatusResource,"/company/application/<int:application_id>/status")
     api.add_resource(CompanyAllApplicationsResource,"/company/applications")
+    api.add_resource(ExportApplicationsResource, "/student/export")

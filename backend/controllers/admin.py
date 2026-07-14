@@ -1,5 +1,6 @@
 from flask_restful import Resource, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from cache_config import cache
 
 from models import (  db,User,StudentProfile,CompanyProfile,PlacementDrive,Application,)
 
@@ -59,7 +60,13 @@ class AdminDashboardResource(Resource):
             if m and 1 <= int(m) <= 12:
                 monthly_drives_data[int(m) - 1] = c
 
-        return {
+        from extensions import cache
+        cache_key = "admin_dashboard_stats"
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return cached_data, 200
+
+        result = {
             "total_students": total_students,
             "total_companies": CompanyProfile.query.count(),
             "total_drives": PlacementDrive.query.count(),
@@ -72,7 +79,9 @@ class AdminDashboardResource(Resource):
             },
             "drives_this_month": drives_this_month,
             "monthly_drives": monthly_drives_data
-        }, 200
+        }
+        cache.set(cache_key, result, timeout=60)
+        return result, 200
     
 class ApproveCompanyResource(Resource):
 
@@ -98,6 +107,9 @@ class ApproveCompanyResource(Resource):
 
         db.session.commit()
 
+        from extensions import cache
+        cache.delete("admin_dashboard_stats")
+
         return {
             "message": f"{company.company_name} approved successfully"
         }, 200
@@ -122,6 +134,9 @@ class RejectCompanyResource(Resource):
         company.approval_status = "rejected"
 
         db.session.commit()
+
+        from extensions import cache
+        cache.delete("admin_dashboard_stats")
 
         return {
             "message": f"{company.company_name} rejected successfully"
@@ -152,6 +167,18 @@ class ApproveDriveResource(Resource):
 
         db.session.commit()
 
+       
+        from extensions import cache
+        cache.delete("admin_dashboard_stats")
+        cache.delete("student_eligible_drives")
+        cache.delete(f"company_dashboard_stats_{drive.company_id}")
+
+        # Send notifications asynchronously via Celery
+        from tasks import notify_drive_approved_task
+        students = User.query.filter_by(role="student").all()
+        for s in students:
+            notify_drive_approved_task.delay(s.email, drive.job_title, drive.id)
+
         return {
             "message":"Placement Drive approved successfully"
         },200
@@ -177,6 +204,11 @@ class RejectDriveResource(Resource):
         drive.status = "rejected"
 
         db.session.commit()
+
+        from extensions import cache
+        cache.delete("admin_dashboard_stats")
+        cache.delete("student_eligible_drives")
+        cache.delete(f"company_dashboard_stats_{drive.company_id}")
 
         return {
             "message":"Placement Drive rejected successfully"
@@ -250,6 +282,9 @@ class BlacklistCompanyResource(Resource):
 
         db.session.commit()
 
+        from extensions import cache
+        cache.delete("admin_dashboard_stats")
+
         return {
             "message":"Company blacklisted successfully"
         },200
@@ -276,6 +311,9 @@ class DeactivateStudentResource(Resource):
 
         db.session.commit()
 
+        from extensions import cache
+        cache.delete("admin_dashboard_stats")
+
         return {
             "message":"Student deactivated successfully"
         },200
@@ -301,6 +339,9 @@ class ActivateStudentResource(Resource):
         student.user.is_active = True
 
         db.session.commit()
+
+        from extensions import cache
+        cache.delete("admin_dashboard_stats")
 
         return {
             "message":"Student activated successfully"

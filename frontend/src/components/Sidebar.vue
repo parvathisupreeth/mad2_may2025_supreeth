@@ -1,7 +1,7 @@
 <template>
   <div class="list-group">
 
-    <!-- Admin Links -->
+    <!-- Admin -->
     <template v-if="role === 'admin'">
       <button
         class="list-group-item list-group-item-action"
@@ -25,7 +25,7 @@
       </button>
     </template>
 
-    <!-- Company Links -->
+    <!-- Company -->
     <template v-else-if="role === 'company'">
       <button
         class="list-group-item list-group-item-action"
@@ -49,7 +49,7 @@
       </button>
     </template>
 
-    <!-- Student Links -->
+    <!-- Student -->
     <template v-else-if="role === 'student'">
       <button
         class="list-group-item list-group-item-action"
