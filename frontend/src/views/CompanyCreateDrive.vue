@@ -38,10 +38,25 @@
                         </div>
 
                         <div class="mb-3">
-                            <label>Eligible Branch</label>
-                            <input
-                                class="form-control"
-                                v-model="drive.eligible_branch">
+                            <label class="form-label">Eligible Branch</label>
+                            <div class="d-flex flex-wrap gap-2">
+                                <div
+                                    v-for="branch in allBranches"
+                                    :key="branch"
+                                    class="form-check form-check-inline">
+                                    <input
+                                        class="form-check-input"
+                                        type="checkbox"
+                                        :id="'branch-' + branch"
+                                        :value="branch"
+                                        v-model="selectedBranches">
+                                    <label
+                                        class="form-check-label"
+                                        :for="'branch-' + branch">
+                                        {{ branch }}
+                                    </label>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="mb-3">
@@ -118,7 +133,10 @@ const allBranches = [
     "Chemical",
     "Biotechnology",
     "MBA",
-    "MCA"
+    "MCA",
+    "Foundation",
+    "Diploma",
+    "BSc Data Science"
 ]
 
 const selectedBranches = ref([])

@@ -81,6 +81,15 @@
 
                   </button>
 
+                  <button
+                    class="btn btn-success btn-sm"
+                    v-if="company.is_blacklisted"
+                    @click="unblacklistCompany(company.id)">
+
+                    Remove Blacklist
+
+                  </button>
+
                 </td>
 
               </tr>
@@ -160,6 +169,22 @@ async function blacklistCompany(id){
 
     await api.put(
         `/admin/company/${id}/blacklist`,
+        {},
+        {
+            headers:{
+                Authorization:`Bearer ${localStorage.getItem("token")}`
+            }
+        }
+    )
+
+    loadCompanies()
+
+}
+
+async function unblacklistCompany(id){
+
+    await api.put(
+        `/admin/company/${id}/unblacklist`,
         {},
         {
             headers:{

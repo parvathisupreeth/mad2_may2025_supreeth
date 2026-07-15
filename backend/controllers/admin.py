@@ -110,9 +110,18 @@ class ApproveCompanyResource(Resource):
         from extensions import cache
         cache.delete("admin_dashboard_stats")
 
+        # Notify company via email
+        from tasks import notify_company_approval_task
+        notify_company_approval_task.delay(
+            company.user.email,
+            company.company_name,
+            "approved"
+        )
+
         return {
             "message": f"{company.company_name} approved successfully"
         }, 200
+
     
 class RejectCompanyResource(Resource):
 
@@ -138,9 +147,17 @@ class RejectCompanyResource(Resource):
         from extensions import cache
         cache.delete("admin_dashboard_stats")
 
+        # Notify company via email
+        from tasks import notify_company_approval_task
+        notify_company_approval_task.delay(
+            company.user.email,
+            company.company_name,
+            "rejected"
+        )
+
         return {
             "message": f"{company.company_name} rejected successfully"
-        },200
+        }, 200
     
 
 class ApproveDriveResource(Resource):
@@ -288,7 +305,40 @@ class BlacklistCompanyResource(Resource):
         return {
             "message":"Company blacklisted successfully"
         },200
-    
+
+
+class UnblacklistCompanyResource(Resource):
+
+    @jwt_required()
+    def put(self, company_id):
+
+        email = get_jwt_identity()
+
+        user = User.query.filter_by(email=email).first()
+
+        if not user or user.role != "admin":
+            return {"message": "Unauthorized"}, 403
+
+        company = CompanyProfile.query.get(company_id)
+
+        if not company:
+            return {"message": "Company not found"}, 404
+
+        if not company.is_blacklisted:
+            return {"message": "Company is not blacklisted"}, 400
+
+        company.is_blacklisted = False
+        company.approval_status = "approved"
+
+        db.session.commit()
+
+        from extensions import cache
+        cache.delete("admin_dashboard_stats")
+
+        return {
+            "message": f"{company.company_name} removed from blacklist and re-approved"
+        }, 200
+
 
 class DeactivateStudentResource(Resource):
 
@@ -429,6 +479,7 @@ def register_admin_routes(api):
     
 
     api.add_resource(BlacklistCompanyResource,"/admin/company/<int:company_id>/blacklist")
+    api.add_resource(UnblacklistCompanyResource,"/admin/company/<int:company_id>/unblacklist")
     api.add_resource(DeactivateStudentResource,"/admin/student/<int:student_id>/deactivate")
     api.add_resource(ActivateStudentResource,"/admin/student/<int:student_id>/activate")
 

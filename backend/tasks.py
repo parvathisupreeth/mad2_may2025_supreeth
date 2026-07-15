@@ -73,6 +73,30 @@ Placement Team"""
     send_email(to_email, subject, body)
 
 
+@celery.task
+def notify_company_approval_task(to_email, company_name, status):
+    if status == "approved":
+        subject = f"✅ Your Company '{company_name}' Has Been Approved!"
+        body = f"""Hi,
+
+Great news! Your company registration for '{company_name}' on the Placement Portal has been approved by the admin.
+
+You can now log in and start posting placement drives for students.
+
+Best regards,
+Placement Portal Team"""
+    else:
+        subject = f"❌ Your Company '{company_name}' Registration Was Rejected"
+        body = f"""Hi,
+
+We regret to inform you that your company registration for '{company_name}' on the Placement Portal has been rejected by the admin.
+
+If you believe this is a mistake, please contact the placement office.
+
+Best regards,
+Placement Portal Team"""
+    send_email(to_email, subject, body)
+
 
 @celery.task(name="tasks.send_daily_deadline_reminders")
 def send_daily_deadline_reminders():

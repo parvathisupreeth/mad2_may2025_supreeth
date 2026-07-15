@@ -49,13 +49,16 @@ npm run dev
 # Celery Worker in backend
 
 ```bash
-celery -A celery_app worker --loglevel=INFO \\ --pool=solo only for windows
+celery -A celery_config.celery worker --pool=solo --loglevel=INFO
+
+celery -A extensions.celery worker --loglevel=info --pool=solo
+
 ```
 
 # Celery Beat
 
 ```bash
-celery -A celery_app beat --loglevel=INFO
+celery -A celery_config.celery beat --loglevel=INFO
 ```
 
 #run --- redis-server.exe
