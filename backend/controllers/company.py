@@ -121,6 +121,10 @@ class CompanyDrivesResource(Resource):
 
         if not company:
             return {"message": "Company not found"}, 404
+        if company.approval_status != "approved":
+            return {"message": "Company is waiting for admin approval."}, 403
+        if company.is_blacklisted:
+            return {"message": "Company has been blacklisted."}, 403
 
         drives = PlacementDrive.query.filter_by(company_id=company.id).all()
 
@@ -220,6 +224,10 @@ class CompanyDashboardResource(Resource):
         company = CompanyProfile.query.filter_by(user_id=user.id).first()
         if not company:
             return {"message": "Company not found"}, 404
+        if company.approval_status != "approved":
+            return {"message": "Company is waiting for admin approval.", "approval_status": company.approval_status}, 403
+        if company.is_blacklisted:
+            return {"message": "Company has been blacklisted.", "approval_status": "blacklisted"}, 403
 
         from extensions import cache
         cache_key = f"company_dashboard_stats_{company.id}"

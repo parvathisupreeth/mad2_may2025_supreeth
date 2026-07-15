@@ -108,39 +108,38 @@ async function login(){
 
         })
 
-        localStorage.setItem(
-            "token",
-            response.data.access_token
-        )
+        const { role, approval_status, is_blacklisted } = response.data
 
-        localStorage.setItem(
-            "role",
-            response.data.role
-        )
+        // Block pending / blacklisted companies before storing anything
+        if(role === "company"){
+            if(is_blacklisted){
+                error.value = "Your company has been blacklisted. Please contact the administrator."
+                return
+            }
+            if(approval_status !== "approved"){
+                error.value = "Your registration is pending admin approval. Please wait for approval before logging in."
+                return
+            }
+        }
 
-        if(response.data.role=="admin"){
+        localStorage.setItem("token", response.data.access_token)
+        localStorage.setItem("role", role)
 
+        if(role === "admin"){
             router.push("/admin")
-
         }
-
-        else if(response.data.role=="student"){
-
+        else if(role === "student"){
             router.push("/student")
-
         }
-
         else{
-
             router.push("/company")
-
         }
 
     }
 
     catch(err){
 
-        error.value=err.response.data.message
+        error.value = err.response?.data?.message || "Login failed"
 
     }
 

@@ -102,4 +102,36 @@ const router = createRouter({
     routes
 });
 
+// Public routes — no authentication needed
+const publicRoutes = ["/", "/login", "/register/student", "/register/company"];
+
+// Default dashboard per role
+const roleDashboard = {
+    admin: "/admin",
+    student: "/student",
+    company: "/company"
+};
+
+router.beforeEach((to, from, next) => {
+    const token = localStorage.getItem("token");
+    const role  = localStorage.getItem("role");
+
+    // Always allow public pages
+    if (publicRoutes.includes(to.path)) {
+        return next();
+    }
+
+    // Not logged in → send to login
+    if (!token) {
+        return next("/login");
+    }
+
+    // Enforce role-based route access
+    if (to.path.startsWith("/admin")   && role !== "admin")   return next(roleDashboard[role] || "/login");
+    if (to.path.startsWith("/student") && role !== "student") return next(roleDashboard[role] || "/login");
+    if (to.path.startsWith("/company") && role !== "company") return next(roleDashboard[role] || "/login");
+
+    return next();
+});
+
 export default router;

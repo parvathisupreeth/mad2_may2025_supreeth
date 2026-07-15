@@ -26,12 +26,21 @@ class LoginResource(Resource):
         
         access_token = create_access_token(identity=user.email)
 
-        return {
+        response_data = {
             "message": "Login Successful",
             "access_token": access_token,
             "role": user.role,
             "username": user.username
-        }, 200
+        }
+
+        # Include approval_status for company users so frontend can gate access
+        if user.role == "company":
+            company = CompanyProfile.query.filter_by(user_id=user.id).first()
+            if company:
+                response_data["approval_status"] = company.approval_status
+                response_data["is_blacklisted"] = company.is_blacklisted
+
+        return response_data, 200
 
 
 class RegisterStudentResource(Resource):
